@@ -10,11 +10,11 @@
 
 float angle=0.0f;
 float lxcam=-60.0f,lzcam=-60.0f, lycam=-30.0f;
-float xcam=1.0f,zcam=1.0f,ycam=1.0f;
+float xcam=100.0f,zcam=100.0f,ycam=100.0f;
 float deltaAngle = 0.0f;
 int xOrigin = -1;
 int yOrigin = -1;
-float camera_speed = 0.1f;
+float camera_speed = 1.0f;
 float camera_x = 0.0f, camera_y = 0.0f, camera_z = 0.0f;
 
 

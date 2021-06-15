@@ -66,8 +66,6 @@ __device__ void compute_ex_force_cuda(float4 *pos, int body2, int body1){
 
 __global__ void compute_ex_forces_cuda(float4 *pos, unsigned int width){
 	int body = (blockIdx.x * blockDim.x) + threadIdx.x;
-	unsigned int x = blockIdx.x*blockDim.x + threadIdx.x;
-    unsigned int y = blockIdx.y*blockDim.y + threadIdx.y;
 	if(body >= n_d) return;
 	for(int k=0; k<n_d; k++){
 		if(body != k){

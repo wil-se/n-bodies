@@ -73,35 +73,18 @@ char **pArgv = NULL;
 void launch_kernel(float4 *pos, unsigned int mesh_width,
                    unsigned int mesh_height, float time)
 {
-    // execute the kernel
     dim3 block(512, 1, 1);
     dim3 grid(ceil(n_d/512.0f), 1, 1);
-    
-    set_new_memory_cuda<<<1,1>>>();
-    // compute<<< grid, block>>>(pos, mesh_width);
     compute_ex_forces_cuda<<<grid,block>>>(pos, mesh_width);
-    free_new_memory_cuda<<<1,1>>>();
-    // compute_ex_forces_cuda<<<grid,block>>>(pos, mesh_width);
 }
 
 void runCuda(struct cudaGraphicsResource **vbo_resource)
 {
-    // map OpenGL buffer object for writing from CUDA
     float4 *dptr;
     checkCudaErrors(cudaGraphicsMapResources(1, vbo_resource, 0));
     size_t num_bytes;
-    checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void **)&dptr, &num_bytes,
-                                                         *vbo_resource));
-    //printf("CUDA mapped VBO: May access %ld bytes\n", num_bytes);
-
-    // execute the kernel
-    //    dim3 block(8, 8, 1);
-    //    dim3 grid(mesh_width / block.x, mesh_height / block.y, 1);
-    //    kernel<<< grid, block>>>(dptr, mesh_width, mesh_height, g_fAnim);
-
+    checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void **)&dptr, &num_bytes, *vbo_resource));
     launch_kernel(dptr, mesh_width, mesh_height, g_fAnim);
-
-    // unmap buffer object
     checkCudaErrors(cudaGraphicsUnmapResources(1, vbo_resource, 0));
 }
 
@@ -117,7 +100,6 @@ void computeFPS()
         avgFPS = 1.f / (sdkGetAverageTimerValue(&timer) / 1000.f);
         fpsCount = 0;
         fpsLimit = (int)MAX(avgFPS, 1.f);
-
         sdkResetTimer(&timer);
     }
 
@@ -130,27 +112,19 @@ void computeFPS()
 void display()
 {
     sdkStartTimer(&timer);
-
-    // run CUDA kernel to generate vertex positions
     runCuda(&cuda_vbo_resource);
-
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    // set view matrix
+    glPointSize(2);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     gluLookAt(xcam,ycam, zcam, xcam+lxcam,ycam+lycam,zcam+lzcam, 0.0f,1.0f,0.0f);
     glutPostRedisplay();
-
-    // render from the vbo
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glVertexPointer(4, GL_FLOAT, 0, 0);
-
     glEnableClientState(GL_VERTEX_ARRAY);
-    glColor3f(1.0, 0.0, 0.0);
+    glColor3f(1.0, 1.0, 0.0);
     glDrawArrays(GL_POINTS, 0, mesh_width * mesh_height);
     glDisableClientState(GL_VERTEX_ARRAY);
-
     glutSwapBuffers();
 
     g_fAnim += 0.01f;
@@ -188,17 +162,8 @@ void keyboard(unsigned char key, int /*x*/, int /*y*/)
         // D
         case (100) :
             xcam -= lxcam * camera_speed;
-			      ycam -= lycam * camera_speed;
+			ycam -= lycam * camera_speed;
             return;
-        // Q
-        case (113) :
-            camera_y += 0.5;
-            return;
-        // E
-        case (101) :
-            camera_y -= 0.5;
-            return;
-        
     }
 }
 
@@ -275,7 +240,7 @@ void render_cuda_exhaustive(int argc, char** argv) {
   glViewport(0, 0, window_width, window_height);
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  gluPerspective(60.0, (GLfloat)window_width / (GLfloat) window_height, 0.1, 10.0);
+  gluPerspective(60.0, (GLfloat)window_width / (GLfloat) window_height, 0.1, 10000.0);
   SDK_CHECK_ERROR_GL();
   glutDisplayFunc(display);
   glutKeyboardFunc(keyboard);
