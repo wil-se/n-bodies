@@ -1,4 +1,5 @@
-#include "../cuda/compute-exhaustive.h"
+#include "compute-exhaustive.h"
+#include "compute-barneshut.h"
 #include "lib/exception.h"
 #include "lib/helper_cuda.h"
 #include "lib/helper_functions.h"
@@ -70,25 +71,41 @@ char **pArgv = NULL;
 
 
 
-void launch_kernel(float4 *pos, unsigned int mesh_width,
-                   unsigned int mesh_height, float time)
+void launch_kernel_exhaustive(float4 *pos, unsigned int mesh_width, unsigned int mesh_height, float time)
 {
-    dim3 block(512, 1, 1);
     dim3 grid(ceil(n_d/512.0f), 1, 1);
-    compute_ex_forces_cuda<<<grid,block>>>(pos, mesh_width);
+    dim3 block(512, 1, 1);
+    compute_ex_forces_cuda<<<grid,block>>>(pos);
 }
 
-void runCuda(struct cudaGraphicsResource **vbo_resource)
+
+
+void launch_kernel_barneshut(float4 *pos, unsigned int mesh_width, unsigned int mesh_height, float time)
+{
+    compute_barnes_forces_cuda<<<1,1>>>(pos);
+    cudaDeviceSynchronize();
+}
+
+
+void run_exhaustive(struct cudaGraphicsResource **vbo_resource)
 {
     float4 *dptr;
     checkCudaErrors(cudaGraphicsMapResources(1, vbo_resource, 0));
     size_t num_bytes;
     checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void **)&dptr, &num_bytes, *vbo_resource));
-    launch_kernel(dptr, mesh_width, mesh_height, g_fAnim);
+    launch_kernel_exhaustive(dptr, mesh_width, mesh_height, g_fAnim);
     checkCudaErrors(cudaGraphicsUnmapResources(1, vbo_resource, 0));
 }
 
-
+void run_barneshut(struct cudaGraphicsResource **vbo_resource)
+{
+    float4 *dptr;
+    checkCudaErrors(cudaGraphicsMapResources(1, vbo_resource, 0));
+    size_t num_bytes;
+    checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void **)&dptr, &num_bytes, *vbo_resource));
+    launch_kernel_barneshut(dptr, mesh_width, mesh_height, g_fAnim);
+    checkCudaErrors(cudaGraphicsUnmapResources(1, vbo_resource, 0));
+}
 
 void computeFPS()
 {
@@ -109,10 +126,34 @@ void computeFPS()
 }
 
 
-void display()
+void display_exhaustive()
 {
     sdkStartTimer(&timer);
-    runCuda(&cuda_vbo_resource);
+    run_exhaustive(&cuda_vbo_resource);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glPointSize(2);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    gluLookAt(xcam,ycam, zcam, xcam+lxcam,ycam+lycam,zcam+lzcam, 0.0f,1.0f,0.0f);
+    glutPostRedisplay();
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glVertexPointer(4, GL_FLOAT, 0, 0);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glColor3f(1.0, 1.0, 0.0);
+    glDrawArrays(GL_POINTS, 0, mesh_width * mesh_height);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glutSwapBuffers();
+
+    g_fAnim += 0.01f;
+
+    sdkStopTimer(&timer);
+    computeFPS();
+}
+
+void display_barneshut()
+{
+    sdkStartTimer(&timer);
+    run_barneshut(&cuda_vbo_resource);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glPointSize(2);
     glMatrixMode(GL_MODELVIEW);
@@ -240,13 +281,36 @@ void render_cuda_exhaustive(int argc, char** argv) {
   glViewport(0, 0, window_width, window_height);
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  gluPerspective(60.0, (GLfloat)window_width / (GLfloat) window_height, 0.1, 10000.0);
+  gluPerspective(60.0, (GLfloat)window_width / (GLfloat) window_height, 0.1, 1000000.0);
   SDK_CHECK_ERROR_GL();
-  glutDisplayFunc(display);
+  glutDisplayFunc(display_exhaustive);
   glutKeyboardFunc(keyboard);
   glutMouseFunc(mouse);
   glutMotionFunc(motion);
   createVBO(&vbo, &cuda_vbo_resource, cudaGraphicsMapFlagsWriteDiscard);
-  runCuda(&cuda_vbo_resource);
+  glutMainLoop();
+}
+
+
+void render_cuda_barneshut(int argc, char** argv) {
+  sdkCreateTimer(&timer);
+  int devID = findCudaDevice(argc, (const char **)argv);
+  glutInit(&argc, argv);
+  glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
+  glutInitWindowSize(1600, 900);
+  glutCreateWindow("space");
+  glutTimerFunc(REFRESH_DELAY, timerEvent,0);
+  glClearColor(0.0, 0.0, 0.0, 1.0);
+  glDisable(GL_DEPTH_TEST);
+  glViewport(0, 0, window_width, window_height);
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  gluPerspective(60.0, (GLfloat)window_width / (GLfloat) window_height, 0.1, 1000000.0);
+  SDK_CHECK_ERROR_GL();
+  glutDisplayFunc(display_barneshut);
+  glutKeyboardFunc(keyboard);
+  glutMouseFunc(mouse);
+  glutMotionFunc(motion);
+  createVBO(&vbo, &cuda_vbo_resource, cudaGraphicsMapFlagsWriteDiscard);
   glutMainLoop();
 }

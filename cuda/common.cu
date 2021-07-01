@@ -11,7 +11,7 @@ __managed__ double *x_d, *y_d, *z_d, *new_x_d, *new_y_d, *new_z_d, *new_sx_d, *n
 __managed__ int n_d;
 
 void set_memory_cuda(){
-	//cudaMalloc((void**)&n_d, sizeof(int));
+	cudaMalloc((void**)&n_d, sizeof(int));
     cudaMalloc((void**)&x_d, sizeof(double)*n);
     cudaMalloc((void**)&y_d, sizeof(double)*n);
     cudaMalloc((void**)&z_d, sizeof(double)*n);
@@ -55,7 +55,7 @@ void free_memory_cuda(){
     cudaFree(sz_d);
 }
 
-__global__ void set_new_memory_cuda(){
+__device__ void set_new_memory_cuda(){
 	cudaMalloc((void**)&new_x_d, sizeof(double)*n_d);
 	cudaMalloc((void**)&new_y_d, sizeof(double)*n_d);
 	cudaMalloc((void**)&new_z_d, sizeof(double)*n_d);
@@ -64,7 +64,7 @@ __global__ void set_new_memory_cuda(){
 	cudaMalloc((void**)&new_sz_d, sizeof(double)*n_d);
 }
 
-__global__ void free_new_memory_cuda(){
+__device__ void free_new_memory_cuda(){
 	cudaFree(new_x_d);
 	cudaFree(new_y_d);
 	cudaFree(new_z_d);
@@ -75,6 +75,7 @@ __global__ void free_new_memory_cuda(){
 
 __global__ void set_new_vectors_cuda(){
     int i = (blockIdx.x * blockDim.x) + threadIdx.x;
+    if(i >= n_d) return;
     new_x_d[i] = x_d[i];
     new_y_d[i] = y_d[i];
     new_z_d[i] = z_d[i];
@@ -85,10 +86,11 @@ __global__ void set_new_vectors_cuda(){
 
 __global__ void set_vectors_cuda(){
 	int i = (blockIdx.x * blockDim.x) + threadIdx.x;
+    if(i >= n_d) return;
     x_d[i] = new_x_d[i];
     y_d[i] = new_y_d[i];
     z_d[i] = new_z_d[i];
     sx_d[i] = new_sx_d[i];
     sy_d[i] = new_sy_d[i];
-    sz_d[i] = new_sz_d[i];      
+    sz_d[i] = new_sz_d[i];
 }

@@ -14,7 +14,7 @@ float xcam=100.0f,zcam=100.0f,ycam=100.0f;
 float deltaAngle = 0.0f;
 int xOrigin = -1;
 int yOrigin = -1;
-float camera_speed = 1.0f;
+float camera_speed = 10.0f;
 float camera_x = 0.0f, camera_y = 0.0f, camera_z = 0.0f;
 
 
@@ -140,7 +140,7 @@ void reshape(GLint w, GLint h) {
   glViewport(0, 0, w, h);
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  gluPerspective(90.0, (GLfloat)w/(GLfloat)h, 1.0, 10000000.0);
+  gluPerspective(90.0, (GLfloat)w/(GLfloat)h, 1.0, 100000000000.0);
   glMatrixMode(GL_MODELVIEW);
 }
 

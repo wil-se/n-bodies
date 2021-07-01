@@ -336,7 +336,7 @@ void build_barnes_tree(bnode* root){
 
 void compute_barnes_forces(bnode* node, int body, double theta){
 	if(node->body == body || node->body == -1){return;}
-	double ratio = fabs(node->max_x - node->min_x);;
+	double ratio = fabs(node->max_x - node->min_x);
 	double line_distance = sqrt(pow(x[body] - node->x,2) + pow(y[body] - node->y,2) + pow(z[body] - node->z,2));;
 		
 	if(ratio/line_distance < theta || node->body >= 0){
